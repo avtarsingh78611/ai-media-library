@@ -25,6 +25,8 @@ function PromptGeneratorContent() {
   const [copied, setCopied] = useState(false);
   const [isMock, setIsMock] = useState(false);
   const [history, setHistory] = useState<PromptGeneration[]>([]);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   // Load history on mount
   const router = useRouter();
@@ -38,6 +40,7 @@ function PromptGeneratorContent() {
           return;
         }
         await loadHistory();
+        setAuthChecking(false);
       } catch {
         router.replace("/login?redirectTo=/prompt-generator");
       }
@@ -56,10 +59,13 @@ function PromptGeneratorContent() {
 
   async function loadHistory() {
     try {
+      setHistoryLoading(true);
       const data = await dbService.getPromptGenerations();
       setHistory(data);
     } catch (err) {
       console.error("Error loading generation history:", err);
+    } finally {
+      setHistoryLoading(false);
     }
   }
 
@@ -105,6 +111,26 @@ function PromptGeneratorContent() {
   const handleCopyHistory = (text: string) => {
     navigator.clipboard.writeText(text);
   };
+
+  if (authChecking) {
+    return (
+      <div className="min-h-full p-8 flex flex-col gap-8 max-w-7xl mx-auto">
+        <div className="space-y-3" aria-hidden="true">
+          <div className="skeleton h-9 w-72 rounded" />
+          <div className="skeleton h-4 w-96 max-w-full rounded" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="skeleton h-[420px] rounded-2xl border border-neutral-800" />
+          <div className="skeleton h-[420px] rounded-2xl border border-neutral-800" />
+        </div>
+        <div className="space-y-3" aria-hidden="true">
+          <div className="skeleton h-6 w-52 rounded" />
+          <div className="skeleton h-24 rounded-xl border border-neutral-850" />
+          <div className="skeleton h-24 rounded-xl border border-neutral-850" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full p-8 flex flex-col gap-8 max-w-7xl mx-auto">
@@ -227,7 +253,22 @@ function PromptGeneratorContent() {
           Recent Activity Log
         </h2>
 
-        {history.length === 0 ? (
+        {historyLoading ? (
+          <div className="space-y-3" aria-hidden="true">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="rounded-xl border border-neutral-850 bg-neutral-900/50 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="skeleton h-5 w-12 rounded" />
+                  <div className="skeleton h-4 w-1/3 rounded" />
+                </div>
+                <div className="space-y-2">
+                  <div className="skeleton h-4 w-full rounded" />
+                  <div className="skeleton h-4 w-4/5 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : history.length === 0 ? (
           <p className="text-neutral-600 text-xs">No recent completions recorded.</p>
         ) : (
           <div className="space-y-3">
@@ -281,8 +322,17 @@ export default function PromptGeneratorPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-accent" />
+        <div className="min-h-screen p-8">
+          <div className="mx-auto flex max-w-7xl flex-col gap-8">
+            <div className="space-y-3">
+              <div className="skeleton h-9 w-72 rounded" />
+              <div className="skeleton h-4 w-96 max-w-full rounded" />
+            </div>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <div className="skeleton h-[420px] rounded-2xl border border-neutral-800" />
+              <div className="skeleton h-[420px] rounded-2xl border border-neutral-800" />
+            </div>
+          </div>
         </div>
       }
     >

@@ -17,4 +17,30 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgb(38 38 38 / 0.72);
+  }
+
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.08),
+      transparent
+    );
+    animation: skeleton-shimmer 1.45s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
 }
