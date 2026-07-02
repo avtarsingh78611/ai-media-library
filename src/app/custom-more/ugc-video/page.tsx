@@ -28,6 +28,8 @@ export default function UgcVideoPage() {
   );
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState("");
+  const [authChecking, setAuthChecking] = useState(true);
+  const [foldersLoading, setFoldersLoading] = useState(true);
 
   // States
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,6 +53,7 @@ export default function UgcVideoPage() {
           return;
         }
         await loadFolders();
+        setAuthChecking(false);
       } catch {
         router.replace("/login?redirectTo=/custom-more/ugc-video");
       }
@@ -62,6 +65,7 @@ export default function UgcVideoPage() {
 
   async function loadFolders() {
     try {
+      setFoldersLoading(true);
       const data = await dbService.getFolders();
       setFolders(data);
       if (data.length > 0) {
@@ -71,7 +75,27 @@ export default function UgcVideoPage() {
       }
     } catch (err) {
       console.error("Error loading folders:", err);
+    } finally {
+      setFoldersLoading(false);
     }
+  }
+
+  if (authChecking) {
+    return (
+      <div className="min-h-full p-8 flex flex-col gap-8 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3" aria-hidden="true">
+          <div className="skeleton h-10 w-10 rounded-xl" />
+          <div className="space-y-3">
+            <div className="skeleton h-8 w-72 rounded" />
+            <div className="skeleton h-4 w-96 max-w-full rounded" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="skeleton h-[560px] rounded-2xl border border-neutral-800 lg:col-span-5" />
+          <div className="skeleton h-[560px] rounded-2xl border border-neutral-800 lg:col-span-7" />
+        </div>
+      </div>
+    );
   }
 
   // UGC Pipeline
@@ -272,22 +296,26 @@ export default function UgcVideoPage() {
               <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
                 Target Folder Destination
               </label>
-              <select
-                value={selectedFolderId}
-                onChange={(e) => setSelectedFolderId(e.target.value)}
-                disabled={isGenerating}
-                className="w-full bg-neutral-950 border border-neutral-800 focus:border-accent rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors"
-              >
-                {folders.length === 0 ? (
-                  <option value="">Default (Creates &apos;Solara Naturals&apos;)</option>
-                ) : (
-                  folders.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} (/{f.slug})
-                    </option>
-                  ))
-                )}
-              </select>
+              {foldersLoading ? (
+                <div className="skeleton h-12 w-full rounded-xl border border-neutral-800" aria-hidden="true" />
+              ) : (
+                <select
+                  value={selectedFolderId}
+                  onChange={(e) => setSelectedFolderId(e.target.value)}
+                  disabled={isGenerating}
+                  className="w-full bg-neutral-950 border border-neutral-800 focus:border-accent rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors"
+                >
+                  {folders.length === 0 ? (
+                    <option value="">Default (Creates &apos;Solara Naturals&apos;)</option>
+                  ) : (
+                    folders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} (/{f.slug})
+                      </option>
+                    ))
+                  )}
+                </select>
+              )}
             </div>
 
             {/* In-place Editable Area */}

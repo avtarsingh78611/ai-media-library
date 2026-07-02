@@ -27,6 +27,7 @@ export default function FolderDetailPage() {
 
   const [folder, setFolder] = useState<Folder | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [authChecking, setAuthChecking] = useState(true);
   const [loading, setLoading] = useState(true);
 
   // Interaction States
@@ -60,6 +61,7 @@ export default function FolderDetailPage() {
         if (folderId) {
           await loadFolderData();
         }
+        setAuthChecking(false);
       } catch {
         router.replace(`/login?redirectTo=/my-work/${folderId}`);
       }
@@ -180,9 +182,7 @@ export default function FolderDetailPage() {
 
     if (loading) {
       return (
-        <div className="w-full h-full flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-accent" />
-        </div>
+        <div className="skeleton h-full w-full" />
       );
     }
 
@@ -276,6 +276,36 @@ export default function FolderDetailPage() {
     router.push(`/prompt-generator?prefill=${encodeURIComponent(promptText)}`);
   };
 
+  function AssetGridSkeleton() {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" aria-hidden="true">
+        {Array.from({ length: 12 }).map((_, index) => (
+          <div key={index} className="aspect-square overflow-hidden rounded-xl border border-neutral-850 bg-neutral-900">
+            <div className="skeleton h-full w-full" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (authChecking) {
+    return (
+      <div className="min-h-full p-8 flex flex-col gap-6 max-w-7xl mx-auto">
+        <div className="flex flex-col gap-4" aria-hidden="true">
+          <div className="skeleton h-5 w-40 rounded" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-3">
+              <div className="skeleton h-9 w-56 rounded" />
+              <div className="skeleton h-4 w-36 rounded" />
+            </div>
+            <div className="skeleton h-12 w-36 rounded-xl" />
+          </div>
+        </div>
+        <AssetGridSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full p-8 flex flex-col gap-6 max-w-7xl mx-auto relative overflow-x-hidden">
       {/* Breadcrumb Header */}
@@ -328,10 +358,7 @@ export default function FolderDetailPage() {
 
       {/* Assets Grid */}
       {loading ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-accent" />
-          <p className="text-neutral-400 text-sm">Fetching files...</p>
-        </div>
+        <AssetGridSkeleton />
       ) : assets.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-24 border border-dashed border-neutral-800 rounded-2xl bg-neutral-900/20 text-center px-4">
           <ImageIcon className="w-12 h-12 text-neutral-600 mb-4" />
@@ -381,12 +408,6 @@ export default function FolderDetailPage() {
                   </span>
                 </div>
 
-                {/* Prompt Hover text overlay */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <p className="text-xs text-white line-clamp-2 leading-relaxed">
-                    {asset.prompt}
-                  </p>
-                </div>
               </div>
             );
           })}

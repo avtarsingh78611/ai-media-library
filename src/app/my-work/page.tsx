@@ -10,6 +10,7 @@ import { getUserSession } from "@/lib/auth";
 export default function MyWorkPage() {
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [assetCounts, setAssetCounts] = useState<Record<string, number>>({});
+  const [authChecking, setAuthChecking] = useState(true);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -31,6 +32,7 @@ export default function MyWorkPage() {
         }
 
         await loadFolders();
+        setAuthChecking(false);
       } catch {
         router.replace("/login?redirectTo=/my-work");
       }
@@ -85,6 +87,44 @@ export default function MyWorkPage() {
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  function FolderGridSkeleton() {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-hidden="true">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="skeleton h-12 w-12 rounded-xl" />
+              <div className="skeleton h-6 w-20 rounded-full" />
+            </div>
+            <div className="mt-5 space-y-2">
+              <div className="skeleton h-5 w-2/3 rounded" />
+              <div className="skeleton h-3 w-1/2 rounded" />
+            </div>
+            <div className="mt-8 border-t border-neutral-800/50 pt-4">
+              <div className="skeleton h-4 w-32 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (authChecking) {
+    return (
+      <div className="min-h-full p-8 flex flex-col gap-8 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" aria-hidden="true">
+          <div className="space-y-3">
+            <div className="skeleton h-9 w-44 rounded" />
+            <div className="skeleton h-4 w-80 max-w-full rounded" />
+          </div>
+          <div className="skeleton h-12 w-36 rounded-xl" />
+        </div>
+        <div className="skeleton h-12 w-full max-w-md rounded-xl" aria-hidden="true" />
+        <FolderGridSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full p-8 flex flex-col gap-8 max-w-7xl mx-auto">
       {/* Page Header */}
@@ -118,10 +158,7 @@ export default function MyWorkPage() {
 
       {/* Grid Content */}
       {loading ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-accent" />
-          <p className="text-neutral-400 text-sm">Loading workspace...</p>
-        </div>
+        <FolderGridSkeleton />
       ) : filteredFolders.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-24 border border-dashed border-neutral-800 rounded-2xl bg-neutral-900/20 text-center px-4">
           <Folder className="w-12 h-12 text-neutral-600 mb-4" />

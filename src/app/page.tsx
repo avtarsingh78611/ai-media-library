@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Filter, Loader2, Folder as FolderIcon, Eye, Download, Sparkles, X } from "lucide-react";
+import { Search, ChevronDown, Loader2, Folder as FolderIcon, Eye, Download, Sparkles, X } from "lucide-react";
 import { dbService, Asset, Folder as FolderType, getAssetUrl } from "@/lib/db";
 import { getUserSession } from "@/lib/auth";
 
@@ -14,12 +14,26 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function GalleryCard({ asset, folders, onSelect }: { asset: Asset; folders: FolderType[]; onSelect: () => void }) {
+const galleryTileClasses = [
+  "md:row-span-2",
+  "md:col-span-2",
+  "",
+  "",
+  "",
+  "md:row-span-2",
+  "md:col-span-2",
+  "",
+  "md:col-span-2",
+  "",
+  "",
+  "md:row-span-2",
+];
+
+function GalleryCard({ asset, layoutClass, onSelect }: { asset: Asset; layoutClass: string; onSelect: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const isVideo = asset.type === "video";
-  const folderName = folders.find((folder) => folder.id === asset.folder_id)?.name || "Unknown";
 
   useEffect(() => {
     let mounted = true;
@@ -53,11 +67,11 @@ function GalleryCard({ asset, folders, onSelect }: { asset: Asset; folders: Fold
   return (
     <div
       onClick={onSelect}
-      className="mb-4 cursor-pointer break-inside-avoid overflow-hidden rounded-3xl border border-neutral-800 bg-neutral-900 shadow-sm shadow-black/20 transition-all duration-200 hover:border-neutral-700"
+      className={`group relative min-h-[160px] cursor-pointer overflow-hidden rounded-lg border border-neutral-900 bg-neutral-950 transition-all duration-200 hover:border-neutral-600 ${layoutClass}`}
     >
-      <div className="relative overflow-hidden bg-neutral-950 h-[240px] flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center bg-neutral-950">
         {loading ? (
-          <Loader2 className="w-6 h-6 animate-spin text-accent" />
+          <div className="skeleton h-full w-full" />
         ) : error ? (
           <div className="text-xs text-red-400 text-center px-2">Preview unavailable</div>
         ) : url ? (
@@ -67,34 +81,31 @@ function GalleryCard({ asset, folders, onSelect }: { asset: Asset; folders: Fold
               muted
               playsInline
               loop
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <img
               src={url}
               alt={asset.prompt}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
             />
           )
         ) : null}
       </div>
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white">
-        <p className="text-xs uppercase tracking-[0.2em] text-neutral-300">
-          {isVideo ? "Video" : "Image"}
-        </p>
-        <p className="mt-1 font-semibold text-sm line-clamp-2">{asset.metadata?.fileName || asset.prompt}</p>
-      </div>
-      <div className="p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-500 uppercase tracking-[0.18em]">
-          <span className="inline-flex items-center gap-1">
-            <FolderIcon className="w-3.5 h-3.5" />
-            {folderName}
-          </span>
-          <span>{formatDate(asset.created_at)}</span>
-        </div>
-        <p className="text-sm text-neutral-300 line-clamp-3">{asset.prompt}</p>
-      </div>
+    </div>
+  );
+}
+
+function GallerySkeleton() {
+  return (
+    <div className="grid auto-rows-[160px] grid-cols-2 gap-1 sm:auto-rows-[180px] lg:grid-cols-4 xl:auto-rows-[205px]" aria-hidden="true">
+      {galleryTileClasses.map((layoutClass, index) => (
+        <div
+          key={index}
+          className={`skeleton min-h-[160px] rounded-lg border border-neutral-900 ${layoutClass}`}
+        />
+      ))}
     </div>
   );
 }
@@ -207,6 +218,9 @@ export default function Home() {
   const selectedFolderName = selectedAsset
     ? folders.find((folder) => folder.id === selectedAsset.folder_id)?.name || "Unknown Workspace"
     : "";
+  const selectedFileName = selectedAsset
+    ? String(selectedAsset.metadata?.fileName || `asset_${selectedAsset.id.slice(0, 6)}`)
+    : "";
 
   const handleRecreate = () => {
     if (!selectedAsset) return;
@@ -252,9 +266,9 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
-        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-4 shadow-sm shadow-black/10">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-3xl bg-neutral-950/70 border border-neutral-800">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-2 shadow-sm shadow-black/10">
+          <div className="flex h-11 items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-950/70 px-3">
             <Search className="w-4 h-4 text-neutral-400" />
             <input
               value={searchQuery}
@@ -265,55 +279,57 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-3">Type</p>
-            <div className="flex items-center gap-2 flex-wrap">
-              {(["all", "image", "video"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setTypeFilter(value)}
-                  className={`px-3 py-2 text-sm rounded-2xl transition-all duration-200 ${
-                    typeFilter === value
-                      ? "bg-accent text-neutral-950"
-                      : "bg-neutral-950/60 text-neutral-300 hover:bg-neutral-900"
-                  }`}
-                >
-                  {value === "all" ? "All" : value === "image" ? "Images" : "Videos"}
-                </button>
-              ))}
+        <div className="grid gap-2 sm:grid-cols-3 lg:w-[430px]">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-2">
+            <label className="sr-only" htmlFor="asset-type-filter">Type</label>
+            <div className="relative">
+              <select
+                id="asset-type-filter"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as "all" | "image" | "video")}
+                className="h-11 w-full appearance-none rounded-xl border border-neutral-800 bg-neutral-950/70 px-3 pr-8 text-sm text-white outline-none transition focus:border-neutral-600"
+              >
+                <option value="all">Type: All</option>
+                <option value="image">Type: Images</option>
+                <option value="video">Type: Videos</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
             </div>
           </div>
 
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-3">Workspace</p>
-            <select
-              value={folderFilter}
-              onChange={(e) => setFolderFilter(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-3 py-3 text-sm text-white focus:outline-none"
-            >
-              <option value="all">All Workspaces</option>
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-3">Sort</p>
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-2 sm:col-span-1">
+            <label className="sr-only" htmlFor="workspace-filter">Workspace</label>
             <div className="relative">
               <select
+                id="workspace-filter"
+                value={folderFilter}
+                onChange={(e) => setFolderFilter(e.target.value)}
+                className="h-11 w-full appearance-none rounded-xl border border-neutral-800 bg-neutral-950/70 px-3 pr-8 text-sm text-white outline-none transition focus:border-neutral-600"
+              >
+                <option value="all">All Workspaces</option>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+            </div>
+          </div>
+
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-2">
+            <label className="sr-only" htmlFor="sort-filter">Sort</label>
+            <div className="relative">
+              <select
+                id="sort-filter"
                 value={dateSort}
                 onChange={(e) => setDateSort(e.target.value as "newest" | "oldest")}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-3 py-3 text-sm text-white focus:outline-none appearance-none"
+                className="h-11 w-full appearance-none rounded-xl border border-neutral-800 bg-neutral-950/70 px-3 pr-8 text-sm text-white outline-none transition focus:border-neutral-600"
               >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
+                <option value="newest">Sort: Newest</option>
+                <option value="oldest">Sort: Oldest</option>
               </select>
-              <Filter className="w-4 h-4 text-neutral-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
             </div>
           </div>
         </div>
@@ -332,9 +348,7 @@ export default function Home() {
       </div>
 
       {loading ? (
-        <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-neutral-800 bg-neutral-900/50">
-          <Loader2 className="w-10 h-10 animate-spin text-accent" />
-        </div>
+        <GallerySkeleton />
       ) : filteredAssets.length === 0 ? (
         <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-neutral-800 bg-neutral-900/40 text-center px-6 py-16">
           <div>
@@ -342,9 +356,9 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <div className="columns-1 sm:columns-2 xl:columns-3 2xl:columns-4 gap-4 space-y-4">
-          {filteredAssets.map((asset) => (
-            <GalleryCard key={asset.id} asset={asset} folders={folders} onSelect={() => {
+        <div className="grid auto-rows-[160px] grid-cols-2 gap-1 sm:auto-rows-[180px] lg:grid-cols-4 xl:auto-rows-[205px]">
+          {filteredAssets.map((asset, index) => (
+            <GalleryCard key={asset.id} asset={asset} layoutClass={galleryTileClasses[index % galleryTileClasses.length]} onSelect={() => {
               setSelectedAsset(asset);
               setIsModalOpen(true);
             }} />
@@ -415,9 +429,11 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-3 rounded-3xl border border-neutral-800 bg-neutral-900 p-4 text-sm text-neutral-400">
-                  <div className="flex justify-between">
-                    <span>File name</span>
-                    <span className="text-white">{selectedAsset.metadata?.fileName || `asset_${selectedAsset.id.slice(0, 6)}`}</span>
+                  <div className="flex min-w-0 items-center justify-between gap-4">
+                    <span className="shrink-0">File name</span>
+                    <span className="min-w-0 truncate text-right text-white" title={selectedFileName}>
+                      {selectedFileName}
+                    </span>
                   </div>
                   {selectedAsset.metadata?.width && selectedAsset.metadata?.height && (
                     <div className="flex justify-between">
